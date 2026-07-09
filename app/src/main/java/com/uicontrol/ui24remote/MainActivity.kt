@@ -36,6 +36,19 @@ class MainActivity : AppCompatActivity() {
         // Mantém a tela sempre ligada, como um app de jogo/console
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        // Pede a MAIOR taxa de atualização de tela disponível (90Hz/120Hz em
+        // vez de travar em 60Hz). Navegadores pedem isso automaticamente;
+        // apps customizados não pedem por padrão, e isso sozinho já parece
+        // "travado" ao arrastar fader/slider mesmo sem travar de verdade.
+        requestHighestRefreshRate()
+
+        // Pede ao sistema pra manter desempenho consistente durante uso
+        // prolongado e intenso (em vez de deixar o Android reduzir o
+        // desempenho depois de uns minutos de app aberto).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            window.setSustainedPerformanceMode(true)
+        }
+
         setContentView(R.layout.activity_main)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -66,6 +79,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Força a janela a usar a maior taxa de atualização de tela suportada
+     * pelo tablet (ex: 120Hz em vez do padrão de 60Hz). Isso é o que faz
+     * arrastar fader/slider parecer "liso" igual no navegador.
+     */
+    private fun requestHighestRefreshRate() {
+        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay
+        } ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val bestMode = display.supportedModes.maxByOrNull { it.refreshRate }
+            if (bestMode != null) {
+                val params = window.attributes
+                params.preferredDisplayModeId = bestMode.modeId
+                window.attributes = params
+            }
+        }
+    }
+
+    /**
      * Ativa o modo tela cheia imersivo (o mesmo usado por jogos), escondendo
      * barra de status e barra de navegação. As barras só reaparecem se o
      * usuário arrastar da borda, e depois somem de novo automaticamente.
@@ -80,11 +116,6 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
-        // Renderização por GPU (o mesmo caminho que o Chrome usa). Em alguns
-        // aparelhos o WebView embutido cai pra renderização por software se
-        // isso não for forçado explicitamente, o que causa o travamento.
-        webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
