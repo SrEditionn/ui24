@@ -127,9 +127,17 @@ class MainActivity : AppCompatActivity() {
             useWideViewPort = false
             mediaPlaybackRequiresUserGesture = false
             cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-            // Pré-renderiza conteúdo fora da tela, deixa o scroll/gestos mais fluidos.
-            offscreenPreRaster = true
+            // offscreenPreRaster desligado: é útil pra páginas com scroll longo,
+            // mas a UI24 é um dashboard com VU-meters animando o tempo todo.
+            // Com isso ligado, a WebView fica rasterizando canais fora da tela
+            // sem necessidade, gastando GPU à toa — provável causa de travamento.
+            offscreenPreRaster = false
         }
+
+        // Reforça renderização via GPU na própria WebView (redundante com
+        // android:hardwareAccelerated no manifest, mas deixa explícito e
+        // fácil de testar trocando para LAYER_TYPE_NONE se precisar comparar).
+        webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
 
         // Tira o efeito de "elástico" nas bordas (menos redraw ao arrastar faders perto da borda).
         webView.overScrollMode = android.view.View.OVER_SCROLL_NEVER

@@ -14,9 +14,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.UI24Remote"
         android:hardwareAccelerated="true"
-        android:largeHeap="true"
-        android:isGame="true"
-        android:appCategory="game">
+        android:largeHeap="true">
 
         <meta-data
             android:name="android.webkit.WebView.EnableSafeBrowsing"
