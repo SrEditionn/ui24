@@ -28,9 +28,6 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_MODE = "mode"          // "ip" or "demo"
         private const val KEY_IP = "saved_ip"
         private const val DEMO_URL = "https://www.soundcraft.com/ui24-software-demo/mixer.html"
-
-        // Tempo (ms) que é preciso segurar o botão escondido para desconectar
-        private const val HOLD_TO_DISCONNECT_MS = 2500L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         loadingSpinner = findViewById(R.id.loadingSpinner)
 
         setupWebView()
-        setupHiddenDisconnectButton()
+        setupDisconnectButton()
         setupConfigScreenButtons()
 
         applyImmersiveFullscreen()
@@ -83,14 +80,31 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        // Renderização por GPU (o mesmo caminho que o Chrome usa). Em alguns
+        // aparelhos o WebView embutido cai pra renderização por software se
+        // isso não for forçado explicitamente, o que causa o travamento.
+        webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            loadWithOverviewMode = true
-            useWideViewPort = true
+            databaseEnabled = true
+            // "overview mode" / "wide viewport" são para sites antigos, não
+            // feitos pra celular. A UI24 já é responsiva; deixar isso ligado
+            // força recálculos de zoom/layout desnecessários e pesa o app.
+            loadWithOverviewMode = false
+            useWideViewPort = false
             mediaPlaybackRequiresUserGesture = false
             cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+            // Pré-renderiza conteúdo fora da tela, deixa o scroll/gestos mais fluidos.
+            offscreenPreRaster = true
         }
+
+        // Tira o efeito de "elástico" nas bordas (menos redraw ao arrastar faders perto da borda).
+        webView.overScrollMode = android.view.View.OVER_SCROLL_NEVER
+        // Some com a barra de rolagem — some visual, um a menos pra desenhar a cada frame.
+        webView.isVerticalScrollBarEnabled = false
+        webView.isHorizontalScrollBarEnabled = false
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
@@ -131,31 +145,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Botão escondido (totalmente transparente, no canto superior esquerdo).
-     * Não aparece e não atrapalha o uso — mas se o usuário segurar o dedo
-     * nele por alguns segundos, pede confirmação para desconectar da mesa
-     * atual e liberar a troca do IP.
+     * Pequeno botão no canto superior esquerdo. Um toque pede confirmação
+     * para desconectar da mesa atual e liberar a troca do IP.
      */
-    private fun setupHiddenDisconnectButton() {
-        val hiddenButton = findViewById<android.view.View>(R.id.hiddenDisconnectButton)
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        var holdRunnable: Runnable? = null
-
-        hiddenButton.setOnTouchListener { _, event ->
-            when (event.action) {
-                android.view.MotionEvent.ACTION_DOWN -> {
-                    holdRunnable = Runnable { confirmDisconnect() }
-                    handler.postDelayed(holdRunnable!!, HOLD_TO_DISCONNECT_MS)
-                    true
-                }
-                android.view.MotionEvent.ACTION_UP,
-                android.view.MotionEvent.ACTION_CANCEL -> {
-                    holdRunnable?.let { handler.removeCallbacks(it) }
-                    true
-                }
-                else -> false
-            }
-        }
+    private fun setupDisconnectButton() {
+        val disconnectButton = findViewById<android.view.View>(R.id.disconnectButton)
+        disconnectButton.setOnClickListener { confirmDisconnect() }
     }
 
     private fun confirmDisconnect() {

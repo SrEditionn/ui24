@@ -93,14 +93,21 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <!-- Botão escondido (transparente) no canto: segure pressionado para desconectar
-             e poder trocar o IP da mesa. Não atrapalha o uso normal. -->
-        <View
-            android:id="@+id/hiddenDisconnectButton"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+        <!-- Pequeno botão de desconectar, no canto superior esquerdo.
+             Visível, mas discreto — um toque abre a confirmação para trocar o IP. -->
+        <TextView
+            android:id="@+id/disconnectButton"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_gravity="top|start"
-            android:alpha="0" />
+            android:layout_margin="10dp"
+            android:background="@drawable/bg_disconnect_button"
+            android:gravity="center"
+            android:text="⏻"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:clickable="true"
+            android:focusable="true" />
 
     </FrameLayout>
 
